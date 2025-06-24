@@ -16,7 +16,7 @@ from xgboost import XGBRegressor
 import mlflow
 import mlflow.sklearn
 import dagshub
-
+from urllib.parse import urlparse
 from src.exception import CustomException
 from src.logger import logging
 from src.utils import save_object, evaluate_models
@@ -33,6 +33,7 @@ class ModelTrainer:
 
         # Initialize Dagshub integration for MLflow
         dagshub.init(repo_owner='mohdsarim8', repo_name='mlproject', mlflow=True)
+        mlflow.set_tracking_uri('https://dagshub.com/mohdsarim8/mlproject.mlflow')
 
     @staticmethod
     def eval_metrics(actual, pred):
@@ -107,7 +108,20 @@ class ModelTrainer:
                 mlflow.log_metric("mae", mae)
                 mlflow.log_metric("r2", r2)
 
-                mlflow.sklearn.log_model(best_model, "model")
+                # Model registry setup
+                tracking_url_type = urlparse(mlflow.get_tracking_uri()).scheme
+                
+                if tracking_url_type != "file":
+                    # Register model with DagsHub
+                    mlflow.sklearn.log_model(
+                        best_model,
+                        "model",
+                        registered_model_name=best_model_name.replace(" ", "_")  # Clean model name
+                    )
+                    logging.info(f"Model registered with name: {best_model_name}")
+                else:
+                    # Local logging fallback
+                    mlflow.sklearn.log_model(best_model, "model")
 
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
