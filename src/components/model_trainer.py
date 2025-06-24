@@ -81,6 +81,9 @@ class ModelTrainer:
             best_model_score = model_report[best_model_name]["test_score"]
             best_params = model_report[best_model_name]["best_params"]
             best_model = trained_models[best_model_name]
+            
+            print(f"Best Model Name: {best_model_name}")
+            print(f"Best Parameters: {best_params}")
 
             if best_model_score < 0.6:
                 raise CustomException("No best model found")
@@ -88,9 +91,13 @@ class ModelTrainer:
             logging.info(f"Best Model: {best_model_name} with R2 score: {best_model_score}")
 
             ### MLflow Tracking ###
-            with mlflow.start_run(run_name=best_model_name):
-                
+            with mlflow.start_run():
                 mlflow.log_param("model_name", best_model_name)
+                
+                # Ensure we always have at least one parameter to log
+                if not best_params:
+                    best_params = {'default_param': 1}  # Dummy parameter
+                
                 mlflow.log_params(best_params)
 
                 predicted = best_model.predict(X_test)
@@ -102,7 +109,6 @@ class ModelTrainer:
 
                 mlflow.sklearn.log_model(best_model, "model")
 
-            ### Save model locally ###
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
                 obj=best_model
