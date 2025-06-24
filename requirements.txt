@@ -8,4 +8,5 @@ xgboost
 flask
 dill
 mlflow
+dagshub
 #-e .
